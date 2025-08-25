@@ -1,0 +1,692 @@
+---
+title: "Analysis_RandomData_v1"
+author: "Benno Engelmann"
+date: "22.06.2025"
+output:
+  html_document: default
+---
+
+```{r, warning=FALSE}
+library(readxl) #Excel-Datei einlesen
+library(tidyverse)
+library(DescTools)
+```
+
+--------------------------------------------------------------------------------
+ANALYSIS OF RANDOM DATA 
+--------------------------------------------------------------------------------
+
+```{r}
+RandomData<- read_excel("C:/Users/benno/Documents/Masterstudium/2. Semester/Digital n-of-1 Trials and their Implication/Analysis/RandomData.xlsx", sheet = 1)
+str(RandomData)
+summary(RandomData)
+table(RandomData$Energie)
+```
+
+Transformations:
+
+```{r}
+RandomData$Tag<-factor(RandomData$Tag)
+RandomData$Woche<-factor(RandomData$Woche)
+RandomData$Intervention<-factor(RandomData$Intervention)
+RandomData$Zeitpunkt<-factor(RandomData$Zeitpunkt)
+
+```
+
+Tests:
+
+```{r}
+shapiro.test(RandomData$Konzentration[RandomData$Intervention=="Nein"]) #wenig hilfreich weil nicht kontinuierlich
+wilcox.test(RandomData$Müdigkeit ~ RandomData$Intervention)
+
+mean(RandomData$Energie[RandomData$Intervention=="Ja"], na.rm=TRUE)
+mean(RandomData$Energie[RandomData$Intervention=="Nein"], na.rm=TRUE)
+mean(RandomData$Konzentration[RandomData$Intervention=="Ja"], na.rm=TRUE)
+mean(RandomData$Konzentration[RandomData$Intervention=="Nein"], na.rm=TRUE)
+mean(RandomData$Müdigkeit[RandomData$Intervention=="Ja"], na.rm=TRUE)
+mean(RandomData$Müdigkeit[RandomData$Intervention=="Nein"], na.rm=TRUE)
+
+sd(RandomData$Energie[RandomData$Intervention=="Ja"], na.rm=TRUE)
+sd(RandomData$Energie[RandomData$Intervention=="Nein"], na.rm=TRUE)
+sd(RandomData$Konzentration[RandomData$Intervention=="Ja"], na.rm=TRUE)
+sd(RandomData$Konzentration[RandomData$Intervention=="Nein"], na.rm=TRUE)
+sd(RandomData$Müdigkeit[RandomData$Intervention=="Ja"], na.rm=TRUE)
+sd(RandomData$Müdigkeit[RandomData$Intervention=="Nein"], na.rm=TRUE)
+
+Summary_Energie_Random<-RandomData%>%group_by(Woche)%>%summarise(
+    Mittelwert = mean(Energie, na.rm=TRUE),
+    Standardabweichung = sd(Energie, na.rm=TRUE),
+    Stichprobengroesse = n(),
+    Standardfehler = Standardabweichung / sqrt(Stichprobengroesse),
+    t_Wert_95_CI = qt(0.975, df = Stichprobengroesse - 1),
+    Untergrenze_CI = Mittelwert - t_Wert_95_CI * Standardfehler,
+    Obergrenze_CI = Mittelwert + t_Wert_95_CI * Standardfehler
+    )
+Summary_Konzentration_Random<-RandomData%>%group_by(Woche)%>%summarise(
+    Mittelwert = mean(Konzentration),
+    Standardabweichung = sd(Konzentration),
+    Stichprobengroesse = n(),
+    Standardfehler = Standardabweichung / sqrt(Stichprobengroesse),
+    t_Wert_95_CI = qt(0.975, df = Stichprobengroesse - 1),
+    Untergrenze_CI = Mittelwert - t_Wert_95_CI * Standardfehler,
+    Obergrenze_CI = Mittelwert + t_Wert_95_CI * Standardfehler
+    )
+Summary_Müdigkeit_Random<-RandomData%>%group_by(Woche)%>%summarise(
+    Mittelwert = mean(Müdigkeit),
+    Standardabweichung = sd(Müdigkeit),
+    Stichprobengroesse = n(),
+    Standardfehler = Standardabweichung / sqrt(Stichprobengroesse),
+    t_Wert_95_CI = qt(0.975, df = Stichprobengroesse - 1),
+    Untergrenze_CI = Mittelwert - t_Wert_95_CI * Standardfehler,
+    Obergrenze_CI = Mittelwert + t_Wert_95_CI * Standardfehler
+    )
+
+```
+
+Plots:
+
+```{r}
+#Boxplots
+ggplot(data=RandomData, aes(x=Intervention,y=Energie))+geom_boxplot()
+ggplot(data=RandomData, aes(x=Intervention,y=Konzentration))+geom_boxplot()
+ggplot(data=RandomData, aes(x=Intervention,y=Müdigkeit))+geom_boxplot()
+
+#Histogramme
+ggplot(data=RandomData,aes(x=Energie))+geom_histogram(binwidth = 1)+facet_wrap(~ Intervention)
+ggplot(data=RandomData,aes(x=Konzentration))+geom_histogram(binwidth = 1)+facet_wrap(~ Intervention)
+ggplot(data=RandomData,aes(x=Müdigkeit))+geom_histogram(binwidth = 1)+facet_wrap(~ Intervention)
+
+#Liniendiagramme Energie
+ggplot(data=subset(RandomData, (RandomData$Woche==1 | RandomData$Woche==2) & RandomData$Zeitpunkt==1 ), aes(x=Tag, y=Energie, color=Intervention, group = interaction(Intervention,Woche)))+geom_line(linewidth=1)+geom_point()
+
+ggplot(data=subset(RandomData, (RandomData$Woche==3 | RandomData$Woche==4) & RandomData$Zeitpunkt==1 ), aes(x=Tag, y=Energie,color=Intervention, group = interaction(Intervention,Woche)))+geom_line(linewidth=1)+geom_point()
+
+ggplot(data=subset(RandomData, (RandomData$Woche==5 | RandomData$Woche==6) & RandomData$Zeitpunkt==1 ), aes(x=Tag, y=Energie,color=Intervention, group = interaction(Intervention,Woche)))+geom_line(linewidth=1)+geom_point()
+
+#Liniendiagramme Konzentration
+ggplot(data=subset(RandomData, RandomData$Woche==1 & RandomData$Zeitpunkt==1 ), aes(x=Tag, y=Konzentration, group = Intervention))+geom_line(linewidth=1)+geom_point()
+ggplot(data=subset(RandomData, RandomData$Woche==2 & RandomData$Zeitpunkt==1 ), aes(x=Tag, y=Konzentration, group = Intervention))+geom_line(linewidth=1)+geom_point()
+ggplot(data=subset(RandomData, RandomData$Woche==3 & RandomData$Zeitpunkt==1 ), aes(x=Tag, y=Konzentration, group = Intervention))+geom_line(linewidth=1)+geom_point()
+
+#Liniendiagramme Müdigkeit
+ggplot(data=subset(RandomData, RandomData$Woche==1 & RandomData$Zeitpunkt==1 ), aes(x=Tag, y=Müdigkeit, group = Intervention))+geom_line(linewidth=1)+geom_point()
+ggplot(data=subset(RandomData, RandomData$Woche==2 & RandomData$Zeitpunkt==1 ), aes(x=Tag, y=Müdigkeit, group = Intervention))+geom_line(linewidth=1)+geom_point()
+ggplot(data=subset(RandomData, RandomData$Woche==3 & RandomData$Zeitpunkt==1 ), aes(x=Tag, y=Müdigkeit, group = Intervention))+geom_line(linewidth=1)+geom_point()
+```
+
+--------------------------------------------------------------------------------
+ANALYSIS OF GENERATED DATA 
+--------------------------------------------------------------------------------
+
+```{r}
+GeneratedData<- read_excel("C:/Users/benno/Documents/Masterstudium/2. Semester/Digital n-of-1 Trials and their Implication/Analysis/templateDataframe.xlsx", sheet = 1)
+SleepScores<- read_csv("C:/Users/benno/Documents/Masterstudium/2. Semester/Digital n-of-1 Trials and their Implication/Takeout/Fitbit/useful/Sleep Score/sleep_score.csv")
+```
+
+Data generation according to hypothesis:
+
+```{r}
+#functions to set mean and sd for Intervention and time
+get_mean <- function(intervention, zeitpunkt, messwert) {
+  if(messwert=="Energie"){
+    if (intervention == "Ja") {  # Protein
+      if (zeitpunkt == 1) return(6.5)
+      if (zeitpunkt == 3) return(7.0)
+      if (zeitpunkt == 5) return(6.8)
+    } else if (intervention == "Nein") {  # Kohlenhydrate
+      if (zeitpunkt == 1) return(6.0)
+      if (zeitpunkt == 3) return(5.3)
+      if (zeitpunkt == 5) return(4.8)
+    }
+  } else if(messwert=="Konzentration")
+  {
+    if (intervention == "Ja") {  # Protein
+      if (zeitpunkt == 1) return(6.8)
+      if (zeitpunkt == 3) return(6.6)
+      if (zeitpunkt == 5) return(6.5)
+    } else if (intervention == "Nein") {  # Kohlenhydrate
+      if (zeitpunkt == 1) return(6.2)
+      if (zeitpunkt == 3) return(5.7)
+      if (zeitpunkt == 5) return(5.4)
+    }
+  } else if(messwert=="Müdigkeit"){
+    if (intervention == "Ja") {  # Protein
+      if (zeitpunkt == 1) return(3.5)
+      if (zeitpunkt == 3) return(4.0)
+      if (zeitpunkt == 5) return(4.5)
+    } else if (intervention == "Nein") {  # Kohlenhydrate
+      if (zeitpunkt == 1) return(4.5)
+      if (zeitpunkt == 3) return(6.5)
+      if (zeitpunkt == 5) return(7.0)
+    }
+  }
+  return(NA)  # fallback
+}
+get_sd <- function(intervention, zeitpunkt, messwert) {
+  if(messwert=="Energie"){
+    if (intervention == "Ja") return(1)   # Protein 
+    else if (intervention == "Nein") return(1.5)  # Kohlenhydrate
+  } 
+  else if(messwert=="Konzentration"){
+    if (intervention == "Ja") return(0.7)   # Protein 
+    else if (intervention == "Nein") return(1.2)  # Kohlenhydrate
+  } 
+  else if(messwert=="Müdigkeit"){
+    if (intervention == "Ja") return(1)   # Protein 
+    else if (intervention == "Nein") return(1.2)  # Kohlenhydrate
+  }
+  return(NA)  # fallback
+}
+clamp <- function(x, min = 1, max = 10) {
+  pmin(pmax(x, min), max)
+}
+
+#generate Energie Data
+for (i in 1:nrow(GeneratedData)) {
+  interv <- GeneratedData$Intervention[i]
+  zeit <- GeneratedData$Zeitpunkt[i]
+  GeneratedData$Energie[i] <- rnorm(1, mean = get_mean(interv, zeit, "Energie"), sd = get_sd(interv, zeit, "Energie"))
+}
+
+#generate Konzentration Data
+for (i in 1:nrow(GeneratedData)) {
+  interv <- GeneratedData$Intervention[i]
+  zeit <- GeneratedData$Zeitpunkt[i]
+  GeneratedData$Konzentration[i] <- rnorm(1, mean = get_mean(interv, zeit, "Konzentration"), sd = get_sd(interv, zeit, "Konzentration"))
+}
+
+#generate Müdigkeit Data
+for (i in 1:nrow(GeneratedData)) {
+  interv <- GeneratedData$Intervention[i]
+  zeit <- GeneratedData$Zeitpunkt[i]
+  GeneratedData$Müdigkeit[i] <- rnorm(1, mean = get_mean(interv, zeit, "Müdigkeit"), sd = get_sd(interv, zeit, "Müdigkeit"))
+}
+
+# only allow values between 1-10
+GeneratedData$Energie<-clamp(round(GeneratedData$Energie))
+GeneratedData$Konzentration<-clamp(round(GeneratedData$Konzentration))
+GeneratedData$Müdigkeit<-clamp(round(GeneratedData$Müdigkeit))
+
+# test for values out of boundary
+summary(GeneratedData)
+```
+
+Data Transformation:
+
+```{r}
+# Transformations on generated Data
+GeneratedData$Tag<-factor(GeneratedData$Tag)
+GeneratedData$Woche<-factor(GeneratedData$Woche)
+GeneratedData$Intervention<-factor(GeneratedData$Intervention)
+GeneratedData$Zeitpunkt<-factor(GeneratedData$Zeitpunkt)
+#str(GeneratedData)
+GeneratedData$Measurement <- 1:nrow(GeneratedData)
+GeneratedData$Datum <- rep(seq.Date(as.Date("2025-05-24"), by = "day", length.out = 42), each = 3) #add date column for mapping to sleep scores
+
+#Transformations on Sleep Score Data
+str(SleepScores)
+SleepScores<-SleepScores[10:46,]
+GeneratedData <- GeneratedData %>%
+  left_join(
+    SleepScores %>%
+      mutate(Date = as.Date(timestamp)) %>%
+      select(Date, overall_score),
+    by = "Date"
+  )
+colnames(GeneratedData)[colnames(GeneratedData) == "overall_score"] <- "SleepScore"
+
+```
+
+Tests:
+
+```{r}
+wilcox.test(GeneratedData$Energie ~ GeneratedData$Intervention)
+wilcox.test(GeneratedData$Konzentration ~ GeneratedData$Intervention)
+wilcox.test(GeneratedData$Müdigkeit ~ GeneratedData$Intervention)
+
+Summary_Energie_Generated<-GeneratedData%>%group_by(Woche)%>%summarise(
+    Mittelwert = mean(Energie, na.rm=TRUE),
+    Standardabweichung = sd(Energie, na.rm=TRUE),
+    Stichprobengroesse = n(),
+    Standardfehler = Standardabweichung / sqrt(Stichprobengroesse),
+    t_Wert_95_CI = qt(0.975, df = Stichprobengroesse - 1),
+    Untergrenze_CI = Mittelwert - t_Wert_95_CI * Standardfehler,
+    Obergrenze_CI = Mittelwert + t_Wert_95_CI * Standardfehler
+    )
+Summary_Konzentration_Generated<-GeneratedData%>%group_by(Woche)%>%summarise(
+    Mittelwert = mean(Konzentration),
+    Standardabweichung = sd(Konzentration),
+    Stichprobengroesse = n(),
+    Standardfehler = Standardabweichung / sqrt(Stichprobengroesse),
+    t_Wert_95_CI = qt(0.975, df = Stichprobengroesse - 1),
+    Untergrenze_CI = Mittelwert - t_Wert_95_CI * Standardfehler,
+    Obergrenze_CI = Mittelwert + t_Wert_95_CI * Standardfehler
+    )
+Summary_Müdigkeit_Generated<-GeneratedData%>%group_by(Woche)%>%summarise(
+    Mittelwert = mean(Müdigkeit),
+    Standardabweichung = sd(Müdigkeit),
+    Stichprobengroesse = n(),
+    Standardfehler = Standardabweichung / sqrt(Stichprobengroesse),
+    t_Wert_95_CI = qt(0.975, df = Stichprobengroesse - 1),
+    Untergrenze_CI = Mittelwert - t_Wert_95_CI * Standardfehler,
+    Obergrenze_CI = Mittelwert + t_Wert_95_CI * Standardfehler
+    )
+
+cor.test(GeneratedData$SleepScore, GeneratedData$Energie)
+cor.test(GeneratedData$SleepScore, GeneratedData$Müdigkeit)
+cor.test(GeneratedData$SleepScore, GeneratedData$Konzentration)
+
+lm(Energie ~ SleepScore + Intervention, data = GeneratedData)
+```
+
+Plots:
+
+```{r}
+#Boxplots
+ggplot(data=GeneratedData, aes(x=Intervention,y=Energie))+geom_boxplot()
+ggplot(data=GeneratedData, aes(x=Intervention,y=Konzentration))+geom_boxplot()
+ggplot(data=GeneratedData, aes(x=Intervention,y=Müdigkeit))+geom_boxplot()
+
+#Histogramme
+ggplot(data=GeneratedData,aes(x=Energie))+geom_histogram(binwidth = 1)+facet_wrap(~ Intervention)
+ggplot(data=GeneratedData,aes(x=Konzentration))+geom_histogram(binwidth = 1)+facet_wrap(~ Intervention)
+ggplot(data=GeneratedData,aes(x=Müdigkeit))+geom_histogram(binwidth = 1)+facet_wrap(~ Intervention)
+
+#Liniendiagramme Energie
+ggplot(data=subset(GeneratedData, (GeneratedData$Woche==1 | GeneratedData$Woche==2) & GeneratedData$Zeitpunkt==1 ), aes(x=Tag, y=Energie, color=Intervention, group = interaction(Intervention,Woche)))+geom_line(linewidth=1)+geom_point()
+
+ggplot(data=subset(GeneratedData, (GeneratedData$Woche==3 | GeneratedData$Woche==4) & GeneratedData$Zeitpunkt==1 ), aes(x=Tag, y=Energie,color=Intervention, group = interaction(Intervention,Woche)))+geom_line(linewidth=1)+geom_point()
+
+ggplot(data=subset(GeneratedData, (GeneratedData$Woche==5 | GeneratedData$Woche==6) & GeneratedData$Zeitpunkt==1 ), aes(x=Tag, y=Energie,color=Intervention, group = interaction(Intervention,Woche)))+geom_line(linewidth=1)+geom_point()
+
+#Liniendiagramme Konzentration
+ggplot(data=subset(GeneratedData, GeneratedData$Woche==1 & GeneratedData$Zeitpunkt==1 ), aes(x=Tag, y=Konzentration, group = Intervention))+geom_line(linewidth=1)+geom_point()
+ggplot(data=subset(GeneratedData, GeneratedData$Woche==2 & GeneratedData$Zeitpunkt==1 ), aes(x=Tag, y=Konzentration, group = Intervention))+geom_line(linewidth=1)+geom_point()
+ggplot(data=subset(GeneratedData, GeneratedData$Woche==3 & GeneratedData$Zeitpunkt==1 ), aes(x=Tag, y=Konzentration, group = Intervention))+geom_line(linewidth=1)+geom_point()
+
+#Liniendiagramme Müdigkeit
+ggplot(data=subset(RandomData, RandomData$Woche==1 & RandomData$Zeitpunkt==1 ), aes(x=Tag, y=Müdigkeit, group = Intervention))+geom_line(linewidth=1)+geom_point()
+ggplot(data=subset(RandomData, RandomData$Woche==2 & RandomData$Zeitpunkt==1 ), aes(x=Tag, y=Müdigkeit, group = Intervention))+geom_line(linewidth=1)+geom_point()
+ggplot(data=subset(RandomData, RandomData$Woche==3 & RandomData$Zeitpunkt==1 ), aes(x=Tag, y=Müdigkeit, group = Intervention))+geom_line(linewidth=1)+geom_point()
+
+#Verläufe je Woche
+ggplot(GeneratedData, aes(x = Zeitpunkt, y = Energie, color = Intervention)) +
+  geom_jitter(width = 0.2, alpha = 0.5) +
+  facet_wrap(~ Woche) +
+  labs(title = "Energieverlauf je Woche", y = "Energie", x = "Stunden nach Frühstück")
+ggplot(GeneratedData, aes(x = Zeitpunkt, y = Konzentration, color = Intervention)) +
+  geom_jitter(width = 0.2, alpha = 0.5) +
+  facet_wrap(~ Woche) +
+  labs(title = "Konzentrationsverlauf je Woche", y = "Konzentration", x = "Stunden nach Frühstück")
+ggplot(GeneratedData, aes(x = Zeitpunkt, y = Müdigkeit, color = Intervention)) +
+  geom_jitter(width = 0.2, alpha = 0.5) +
+  facet_wrap(~ Woche) +
+  labs(title = "Müdigkeitsverlauf je Woche", y = "Müdigkeit", x = "Stunden nach Frühstück")
+  
+ggplot(GeneratedData, aes(x = SleepScore, y = Energie)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "lm") +
+  labs(
+    title = "Energie vs. Schlafscore",
+    x = "Schlafscore",
+    y = "Energie"
+  )
+
+ggplot(GeneratedData, aes(x = SleepScore, y = Konzentration)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "lm") +
+  labs(
+    title = "Konzentration vs. Schlafscore",
+    x = "Schlafscore",
+    y = "Konzentration"
+  )
+
+ggplot(GeneratedData, aes(x = SleepScore, y = Müdigkeit)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "lm") +
+  labs(
+    title = "Müdigkeit vs. Schlafscore",
+    x = "Schlafscore",
+    y = "Müdigkeit"
+  )
+```
+
+Testen der Hypothesen:
+
+```{r}
+#Test von Hypothese 1: Energielevel nach Stunde 3 und 5 ist höher mit Intervention
+shapiro.test(subset(GeneratedData, Intervention == "Ja" & Zeitpunkt %in% c(3,5))$Energie)
+shapiro.test(subset(GeneratedData, Intervention == "Nein" & Zeitpunkt %in% c(3,5))$Energie)
+ggplot(subset(GeneratedData, Zeitpunkt %in% c(3, 5)), 
+       aes(x = factor(Zeitpunkt), y = Energie, fill = Intervention)) +
+  geom_boxplot() +
+  labs(title = "Energielevel nach 3h & 5h: Protein vs. KH",
+       x = "Stunden nach Frühstück", y = "Energie")
+t.test(Energie ~ Intervention, data =subset(GeneratedData, Zeitpunkt %in% c(3, 5)),alternative="greater") # je anch Ergebnis von shapiro durch wilcox.test(...) ersetzen
+
+#Test von Hypothese 2: Müdigkeit ist höher nach Stunde 3 und 5 ohne Intervention
+ggplot(subset(GeneratedData, Zeitpunkt %in% c(3, 5)), 
+       aes(x = factor(Zeitpunkt), y = Müdigkeit, fill = Intervention)) +
+  geom_boxplot() +
+  labs(title = "Müdigkeit nach 3h & 5h: Protein vs. KH",
+       x = "Stunden nach Frühstück", y = "Müdigkeit")
+t.test(Müdigkeit ~ Intervention, data =subset(GeneratedData, Zeitpunkt %in% c(3, 5)),alternative="less") # je anch Ergebnis von shapiro durch wilcox.test(...) ersetzen
+
+#Test von Hypothese 3: Konzentration ist höher und stabiler mit Intervention an allen Zeitpunkten
+shapiro.test(subset(GeneratedData, Intervention == "Ja")$Konzentration)
+shapiro.test(subset(GeneratedData, Intervention == "Nein")$Konzentration)
+ggplot(GeneratedData, aes(x = Zeitpunkt, y = Konzentration, color = Intervention)) +
+  geom_jitter(width = 0.3, alpha = 0.3) +
+  labs(title = "Verlauf der Konzentration", y = "Konzentration")
+t.test(Konzentration ~ Intervention, data =GeneratedData,alternative="greater")
+aggregate(Konzentration ~ Intervention, data =GeneratedData,sd) # je anch Ergebnis von shapiro durch wilcox.test(...) ersetzen
+
+#Test von weiteren interessanten Fragen:
+#schwankt Energie, Konzentration oder Müdigkeit über den Tag unabhängig vom Frühstück?
+ggplot(GeneratedData, aes(x = factor(Zeitpunkt), y = Energie)) +
+  geom_boxplot() +
+  labs(title = "Energieverlauf über den Tag (alle Bedingungen)",
+       x = "Stunden nach Frühstück", y = "Energie")
+summary(lm(Energie ~ factor(Zeitpunkt), data = GeneratedData))
+
+ggplot(GeneratedData, aes(x = factor(Zeitpunkt), y = Konzentration)) +
+  geom_boxplot() +
+  labs(title = "Konzentrationsverlauf über den Tag (alle Bedingungen)",
+       x = "Stunden nach Frühstück", y = "Konzentration")
+summary(lm(Konzentration ~ factor(Zeitpunkt), data = GeneratedData))
+
+ggplot(GeneratedData, aes(x = factor(Zeitpunkt), y = Müdigkeit)) +
+  geom_boxplot() +
+  labs(title = "Müdigkeitsverlauf über den Tag (alle Bedingungen)",
+       x = "Stunden nach Frühstück", y = "Müdigkeit")
+summary(lm(Müdigkeit ~ factor(Zeitpunkt), data = GeneratedData))
+
+#wie hängen Energie und Müdigkeit zusammen? Müdigkeit steigt -> Energie sinkt?
+cor(GeneratedData$Energie, GeneratedData$Müdigkeit)
+ggplot(GeneratedData, aes(x = Müdigkeit, y = Energie)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "lm", se = TRUE) +
+  labs(
+    title = "Zusammenhang zwischen Müdigkeit und Energie",
+    x = "Müdigkeit",
+    y = "Energie"
+  )
+
+ggplot(GeneratedData, aes(x = Measurement, y = Energie+Müdigkeit)) +
+  geom_line() +
+  labs(
+    title = "Verlauf von Energie + Müdigkeit",
+    y = "Energie + Müdigkeit",
+    x = "Measurement"
+  )
+
+#Erklärt Schlafscore die Müdigkeit deutlich mehr als das Frühstück? (hier keine Schlafdaten simmuliert aufgrund fehlender realistischer annahmen) 
+ggplot(GeneratedData, aes(x = SleepScore, y = Müdigkeit, color = Intervention)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  labs(title = "Müdigkeit ~ Schlafscore", x = "Schlafscore", y = "Müdigkeit")
+model <- lm(Müdigkeit ~ Intervention + Schlafscore, data = GeneratedData)
+summary(model)
+```
+
+Experimentelles:
+
+```{r}
+GeneratedData_long <- pivot_longer(
+  GeneratedData,
+  cols = c(Energie, Konzentration, Müdigkeit),
+  names_to = "Variable",
+  values_to = "Wert"
+)
+
+ggplot(GeneratedData, aes(x = Measurement, y = Energie, color = Woche)) +
+  geom_line(size = 0.5)
+
+ggplot(GeneratedData, aes(x = Measurement, y = Müdigkeit, color = Woche)) +
+  geom_line(size = 0.5)
+
+ggplot(GeneratedData, aes(x = Measurement, y = Konzentration, color = Woche)) +
+  geom_line(size = 0.5)
+
+```
+
+--------------------------------------------------------------------------------
+ANALYSIS OF REAL DATA 
+--------------------------------------------------------------------------------
+
+```{r}
+RealData<- read_excel("C:/Users/benno/Documents/Masterstudium/2. Semester/Digital n-of-1 Trials and their Implication/Analysis/RealData.xlsx", sheet = 1)
+SleepScores<- read_csv("C:/Users/benno/Documents/Masterstudium/2. Semester/Digital n-of-1 Trials and their Implication/Takeout/Fitbit/useful/Sleep Score/sleep_score.csv")
+```
+
+Data Transformation:
+
+```{r}
+# Transformations on real Data
+RealData$Tag<-factor(RealData$Tag)
+RealData$Woche<-factor(RealData$Woche)
+RealData$Intervention<-factor(RealData$Intervention)
+RealData$Zeitpunkt<-factor(RealData$Zeitpunkt)
+#str(RealData)
+RealData$Measurement <- 1:nrow(RealData)
+RealData$Datum <- rep(seq.Date(as.Date("2025-05-24"), by = "day", length.out = 42), each = 3) #add date column for mapping to sleep scores
+
+#Transformations on Sleep Score Data
+str(SleepScores)
+SleepScores<-SleepScores[10:46,] # only take dates inside trial periode
+RealData <- RealData %>%
+  left_join(
+    SleepScores %>%
+      mutate(Datum = as.Date(timestamp)) %>%
+      select(Datum, overall_score),
+    by = "Datum"
+  )
+#Nachträgliche Änderungen (translation to english to be consistent with report language)
+colnames(RealData)[colnames(RealData) == "overall_score"] <- "SleepScore"
+colnames(RealData)[colnames(RealData) == "Tag"] <- "Day"
+colnames(RealData)[colnames(RealData) == "Woche"] <- "Week"
+colnames(RealData)[colnames(RealData) == "Zeitpunkt"] <- "Time"
+colnames(RealData)[colnames(RealData) == "Energie"] <- "Energy"
+colnames(RealData)[colnames(RealData) == "Datum"] <- "Date"
+colnames(RealData)[colnames(RealData) == "Messung"] <- "Measurement"
+colnames(RealData)[colnames(RealData) == "Müdigkeit"] <- "Fatigue"
+colnames(RealData)[colnames(RealData) == "Konzentration"] <- "Concentration"
+levels(RealData$Intervention)[levels(RealData$Intervention) == "Ja"] <- "Protein"
+levels(RealData$Intervention)[levels(RealData$Intervention) == "Nein"] <- "Carbohydrate"
+```
+
+Tests:
+
+```{r}
+wilcox.test(RealData$Energy ~ RealData$Intervention)
+wilcox.test(RealData$Concentration ~ RealData$Intervention)
+wilcox.test(RealData$Fatigue ~ RealData$Intervention)
+
+Summary_Energy<-RealData%>%group_by(Week)%>%summarise(
+    Mittelwert = mean(Energy, na.rm=TRUE),
+    Standardabweichung = sd(Energy, na.rm=TRUE),
+    Stichprobengroesse = n(),
+    Standardfehler = Standardabweichung / sqrt(Stichprobengroesse),
+    t_Wert_95_CI = qt(0.975, df = Stichprobengroesse - 1),
+    Untergrenze_CI = Mittelwert - t_Wert_95_CI * Standardfehler,
+    Obergrenze_CI = Mittelwert + t_Wert_95_CI * Standardfehler
+    )
+Summary_Concentration<-RealData%>%group_by(Week)%>%summarise(
+    Mittelwert = mean(Concentration),
+    Standardabweichung = sd(Concentration),
+    Stichprobengroesse = n(),
+    Standardfehler = Standardabweichung / sqrt(Stichprobengroesse),
+    t_Wert_95_CI = qt(0.975, df = Stichprobengroesse - 1),
+    Untergrenze_CI = Mittelwert - t_Wert_95_CI * Standardfehler,
+    Obergrenze_CI = Mittelwert + t_Wert_95_CI * Standardfehler
+    )
+Summary_Fatigue<-RealData%>%group_by(Week)%>%summarise(
+    Mittelwert = mean(Fatigue),
+    Standardabweichung = sd(Fatigue),
+    Stichprobengroesse = n(),
+    Standardfehler = Standardabweichung / sqrt(Stichprobengroesse),
+    t_Wert_95_CI = qt(0.975, df = Stichprobengroesse - 1),
+    Untergrenze_CI = Mittelwert - t_Wert_95_CI * Standardfehler,
+    Obergrenze_CI = Mittelwert + t_Wert_95_CI * Standardfehler
+    )
+
+cor.test(RealData$SleepScore, RealData$Energy)
+cor.test(RealData$SleepScore, RealData$Fatigue)
+cor.test(RealData$SleepScore, RealData$Concentration)
+
+lm(Fatigue ~ SleepScore + Intervention, data = RealData)
+```
+
+Plots:
+
+```{r}
+#Boxplots
+ggplot(data=RealData, aes(x=Intervention,y=Energy))+geom_boxplot()
+ggplot(data=RealData, aes(x=Intervention,y=Concentration))+geom_boxplot()
+ggplot(data=RealData, aes(x=Intervention,y=Fatigue))+geom_boxplot()
+
+#Histogramme
+ggplot(data=RealData,aes(x=Energy))+geom_histogram(binwidth = 1)+facet_wrap(~ Intervention)
+ggplot(data=RealData,aes(x=Concentration))+geom_histogram(binwidth = 1)+facet_wrap(~ Intervention)
+ggplot(data=RealData,aes(x=Fatigue))+geom_histogram(binwidth = 1)+facet_wrap(~ Intervention)
+
+#Liniendiagramme Energy
+ggplot(data=subset(RealData, (RealData$Week==1 | RealData$Week==2) & RealData$Time==1 ), aes(x=Day, y=Energy, color=Intervention, group = interaction(Intervention,Week)))+geom_line(linewidth=1)+geom_point()
+
+ggplot(data=subset(RealData, (RealData$Week==3 | RealData$Week==4) & RealData$Time==1 ), aes(x=Day, y=Energy,color=Intervention, group = interaction(Intervention,Week)))+geom_line(linewidth=1)+geom_point()
+
+ggplot(data=subset(RealData, (RealData$Week==5 | RealData$Week==6) & RealData$Time==1 ), aes(x=Day, y=Energy,color=Intervention, group = interaction(Intervention,Week)))+geom_line(linewidth=1)+geom_point()
+
+#Liniendiagramme Concentration
+ggplot(data=subset(RealData, (RealData$Week==1 | RealData$Week==2) & RealData$Time==1 ), aes(x=Day, y=Concentration, color=Intervention, group = Intervention))+geom_line(linewidth=1)+geom_point()
+ggplot(data=subset(RealData, (RealData$Week==3 | RealData$Week==4) & RealData$Time==1 ), aes(x=Day, y=Concentration, color=Intervention, group = Intervention))+geom_line(linewidth=1)+geom_point()
+ggplot(data=subset(RealData, (RealData$Week==5 | RealData$Week==6) & RealData$Time==1 ), aes(x=Day, y=Concentration, color=Intervention, group = Intervention))+geom_line(linewidth=1)+geom_point()
+
+#Liniendiagramme Fatigue
+ggplot(data=subset(RealData, RealData$Week==1 & RealData$Time==1 ), aes(x=Day, y=Fatigue, group = Intervention))+geom_line(linewidth=1)+geom_point()
+ggplot(data=subset(RealData, RealData$Week==2 & RealData$Time==1 ), aes(x=Day, y=Fatigue, group = Intervention))+geom_line(linewidth=1)+geom_point()
+ggplot(data=subset(RealData, RealData$Week==3 & RealData$Time==1 ), aes(x=Day, y=Fatigue, group = Intervention))+geom_line(linewidth=1)+geom_point()
+
+#Verläufe je Week
+ggplot(RealData, aes(x = Time, y = Energy, color = Intervention)) +
+  geom_jitter(width = 0.2, alpha = 0.5) +
+  facet_wrap(~ Week) +
+  labs( y = "Energy", x = "Number of measurement")
+ggplot(RealData, aes(x = Time, y = Concentration, color = Intervention)) +
+  geom_jitter(width = 0.2, alpha = 0.5) +
+  facet_wrap(~ Week) + 
+  labs( y = "Concentration", x = "Number of measurement")
+ggplot(RealData, aes(x = Time, y = Fatigue, color = Intervention)) +
+  geom_jitter(width = 0.2, alpha = 0.5) +
+  facet_wrap(~ Week)+ 
+  labs( y = "Fatigue", x = "Number of measurement")
+  
+ggplot(RealData, aes(x = SleepScore, y = Energy)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "lm") +
+  labs(
+    title = "Energy vs. Schlafscore",
+    x = "Schlafscore",
+    y = "Energy"
+  )
+
+ggplot(RealData, aes(x = SleepScore, y = Concentration)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "lm") +
+  labs(
+    title = "Concentration vs. Schlafscore",
+    x = "Schlafscore",
+    y = "Concentration"
+  )
+
+ggplot(RealData, aes(x = SleepScore, y = Fatigue)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "lm") +
+  labs(
+    title = "Fatigue vs. Schlafscore",
+    x = "Schlafscore",
+    y = "Fatigue"
+  )
+```
+
+Testen der Hypothesen:
+
+```{r}
+#Test von Hypothese 1: Energylevel nach Stunde 3 und 5 ist höher mit Intervention
+shapiro.test(subset(RealData, Intervention == "Protein" & Time %in% c(3,5))$Energy)
+shapiro.test(subset(RealData, Intervention == "Carbohydrate" & Time %in% c(3,5))$Energy)
+ggplot(subset(RealData, Time %in% c(3, 5)), 
+       aes(x = factor(Time), y = Energy, fill = Intervention)) +
+  geom_boxplot() +
+  labs(title = "Energylevel nach 3h & 5h: Protein vs. KH",
+       x = "Stunden nach Frühstück", y = "Energy")
+wilcox.test(Energy ~ Intervention, data =subset(RealData, Time %in% c(3, 5)),alternative="greater")
+
+#Test von Hypothese 2: Fatigue ist höher nach Stunde 3 und 5 ohne Intervention
+shapiro.test(subset(RealData, Intervention == "Protein" & Time %in% c(3,5))$Fatigue)
+shapiro.test(subset(RealData, Intervention == "Carbohydrate" & Time %in% c(3,5))$Fatigue)
+ggplot(subset(RealData, Time %in% c(3, 5)), 
+       aes(x = factor(Time), y = Fatigue, fill = Intervention)) +
+  geom_boxplot() +
+  labs(title = "Fatigue nach 3h & 5h: Protein vs. KH",
+       x = "Stunden nach Frühstück", y = "Fatigue")
+wilcox.test(Fatigue ~ Intervention, data =subset(RealData, Time %in% c(3, 5)),alternative="less")
+
+#Test von Hypothese 3: Concentration ist höher und stabiler mit Intervention an allen Timeen
+shapiro.test(subset(RealData, Intervention == "Protein")$Concentration)
+shapiro.test(subset(RealData, Intervention == "Carbohydrate")$Concentration)
+ggplot(RealData, aes(x = Time, y = Concentration, color = Intervention)) +
+  geom_jitter(width = 0.3, alpha = 0.3) +
+  labs(title = "Verlauf der Concentration", y = "Concentration")
+wilcox.test(Concentration ~ Intervention, data =RealData,alternative="greater")
+aggregate(Concentration ~ Intervention, data =RealData,sd)
+
+#Test von weiteren interessanten Fragen:
+#schwankt Energy, Concentration oder Fatigue über den Day unabhängig vom Frühstück?
+ggplot(RealData, aes(x = factor(Time), y = Energy)) +
+  geom_boxplot() +
+  labs(title = "Energyverlauf über den Day (alle Bedingungen)",
+       x = "Stunden nach Frühstück", y = "Energy")
+summary(lm(Energy ~ factor(Time), data = RealData))
+
+ggplot(RealData, aes(x = factor(Time), y = Concentration)) +
+  geom_boxplot() +
+  labs(title = "Concentrationsverlauf über den Day (alle Bedingungen)",
+       x = "Stunden nach Frühstück", y = "Concentration")
+summary(lm(Concentration ~ factor(Time), data = RealData))
+
+ggplot(RealData, aes(x = factor(Time), y = Fatigue)) +
+  geom_boxplot() +
+  labs(title = "Fatiguesverlauf über den Day (alle Bedingungen)",
+       x = "Stunden nach Frühstück", y = "Fatigue")
+summary(lm(Fatigue ~ factor(Time), data = RealData))
+
+#wie hängen Energy und Fatigue zusammen? Fatigue steigt -> Energy sinkt?
+cor(RealData$Energy, RealData$Fatigue)
+ggplot(RealData, aes(x = Fatigue, y = Energy)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "lm", se = TRUE) +
+  labs(
+    title = "Zusammenhang zwischen Fatigue und Energy",
+    x = "Fatigue",
+    y = "Energy"
+  )
+
+ggplot(RealData, aes(x = Measurement, y = Energy+Fatigue)) +
+  geom_line() +
+  labs(
+    title = "Verlauf von Energy + Fatigue",
+    y = "Energy + Fatigue",
+    x = "Measurement"
+  )
+
+#Erklärt Schlafscore die Fatigue mehr als das Frühstück?
+ggplot(RealData, aes(x = SleepScore, y = Fatigue, color = Intervention)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  labs(title = "Fatigue ~ Schlafscore", x = "Schlafscore", y = "Fatigue")
+model <- lm(Fatigue ~ Intervention + SleepScore, data = RealData)
+summary(model)
+```
+
+Experimente
