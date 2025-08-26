@@ -493,6 +493,8 @@ colnames(RealData)[colnames(RealData) == "Müdigkeit"] <- "Fatigue"
 colnames(RealData)[colnames(RealData) == "Konzentration"] <- "Concentration"
 levels(RealData$Intervention)[levels(RealData$Intervention) == "Ja"] <- "Protein"
 levels(RealData$Intervention)[levels(RealData$Intervention) == "Nein"] <- "Carbohydrate"
+levels(RealData$Time)[levels(RealData$Time) == "3"] <- "5"
+levels(RealData$Time)[levels(RealData$Time) == "2"] <- "3"
 ```
 
 Tests:
@@ -571,22 +573,22 @@ ggplot(data=subset(RealData, RealData$Week==3 & RealData$Time==1 ), aes(x=Day, y
 ggplot(RealData, aes(x = Time, y = Energy, color = Intervention)) +
   geom_jitter(width = 0.2, alpha = 0.5) +
   facet_wrap(~ Week) +
-  labs( y = "Energy", x = "Number of measurement")
+  labs( y = "Energy", x = "hours after breakfast")
 ggplot(RealData, aes(x = Time, y = Concentration, color = Intervention)) +
   geom_jitter(width = 0.2, alpha = 0.5) +
   facet_wrap(~ Week) + 
-  labs( y = "Concentration", x = "Number of measurement")
+  labs( y = "Concentration", x = "hours after breakfast")
 ggplot(RealData, aes(x = Time, y = Fatigue, color = Intervention)) +
   geom_jitter(width = 0.2, alpha = 0.5) +
   facet_wrap(~ Week)+ 
-  labs( y = "Fatigue", x = "Number of measurement")
+  labs( y = "Fatigue", x = "hours after breakfast")
   
 ggplot(RealData, aes(x = SleepScore, y = Energy)) +
   geom_point(alpha = 0.5) +
   geom_smooth(method = "lm") +
   labs(
-    title = "Energy vs. Schlafscore",
-    x = "Schlafscore",
+    title = "Energy vs. SleepScore",
+    x = "SleepScore",
     y = "Energy"
   )
 
@@ -594,8 +596,8 @@ ggplot(RealData, aes(x = SleepScore, y = Concentration)) +
   geom_point(alpha = 0.5) +
   geom_smooth(method = "lm") +
   labs(
-    title = "Concentration vs. Schlafscore",
-    x = "Schlafscore",
+    title = "Concentration vs. SleepScore",
+    x = "SleepScore",
     y = "Concentration"
   )
 
@@ -603,8 +605,8 @@ ggplot(RealData, aes(x = SleepScore, y = Fatigue)) +
   geom_point(alpha = 0.5) +
   geom_smooth(method = "lm") +
   labs(
-    title = "Fatigue vs. Schlafscore",
-    x = "Schlafscore",
+    title = "Fatigue vs. SleepScore",
+    x = "SleepScore",
     y = "Fatigue"
   )
 ```
@@ -618,8 +620,8 @@ shapiro.test(subset(RealData, Intervention == "Carbohydrate" & Time %in% c(3,5))
 ggplot(subset(RealData, Time %in% c(3, 5)), 
        aes(x = factor(Time), y = Energy, fill = Intervention)) +
   geom_boxplot() +
-  labs(title = "Energylevel nach 3h & 5h: Protein vs. KH",
-       x = "Stunden nach Frühstück", y = "Energy")
+  labs(title = "Energy after 3h & 5h",
+       x = "hours after breakfast", y = "Energy")
 wilcox.test(Energy ~ Intervention, data =subset(RealData, Time %in% c(3, 5)),alternative="greater")
 
 #Test von Hypothese 2: Fatigue ist höher nach Stunde 3 und 5 ohne Intervention
@@ -628,8 +630,8 @@ shapiro.test(subset(RealData, Intervention == "Carbohydrate" & Time %in% c(3,5))
 ggplot(subset(RealData, Time %in% c(3, 5)), 
        aes(x = factor(Time), y = Fatigue, fill = Intervention)) +
   geom_boxplot() +
-  labs(title = "Fatigue nach 3h & 5h: Protein vs. KH",
-       x = "Stunden nach Frühstück", y = "Fatigue")
+  labs(title = "Fatigue after 3h & 5h",
+       x = "hours after breakfast", y = "Fatigue")
 wilcox.test(Fatigue ~ Intervention, data =subset(RealData, Time %in% c(3, 5)),alternative="less")
 
 #Test von Hypothese 3: Concentration ist höher und stabiler mit Intervention an allen Timeen
@@ -637,7 +639,7 @@ shapiro.test(subset(RealData, Intervention == "Protein")$Concentration)
 shapiro.test(subset(RealData, Intervention == "Carbohydrate")$Concentration)
 ggplot(RealData, aes(x = Time, y = Concentration, color = Intervention)) +
   geom_jitter(width = 0.3, alpha = 0.3) +
-  labs(title = "Verlauf der Concentration", y = "Concentration")
+  labs(title = "Progression of Concentration",x = "hours after breakfast", y = "Concentration")
 wilcox.test(Concentration ~ Intervention, data =RealData,alternative="greater")
 aggregate(Concentration ~ Intervention, data =RealData,sd)
 
@@ -645,46 +647,46 @@ aggregate(Concentration ~ Intervention, data =RealData,sd)
 #schwankt Energy, Concentration oder Fatigue über den Day unabhängig vom Frühstück?
 ggplot(RealData, aes(x = factor(Time), y = Energy)) +
   geom_boxplot() +
-  labs(title = "Energyverlauf über den Day (alle Bedingungen)",
-       x = "Stunden nach Frühstück", y = "Energy")
+  labs(title = "Energy per Day (all conditions)",
+       x = "hours after breakfast", y = "Energy")
 summary(lm(Energy ~ factor(Time), data = RealData))
 
 ggplot(RealData, aes(x = factor(Time), y = Concentration)) +
   geom_boxplot() +
-  labs(title = "Concentrationsverlauf über den Day (alle Bedingungen)",
-       x = "Stunden nach Frühstück", y = "Concentration")
+  labs(title = "Concentration per Day (all conditions)",
+       x = "hours after breakfast", y = "Concentration")
 summary(lm(Concentration ~ factor(Time), data = RealData))
 
 ggplot(RealData, aes(x = factor(Time), y = Fatigue)) +
   geom_boxplot() +
-  labs(title = "Fatiguesverlauf über den Day (alle Bedingungen)",
-       x = "Stunden nach Frühstück", y = "Fatigue")
+  labs(title = "Fatigues per Day (all conditions)",
+       x = "hours after breakfast", y = "Fatigue")
 summary(lm(Fatigue ~ factor(Time), data = RealData))
 
 #wie hängen Energy und Fatigue zusammen? Fatigue steigt -> Energy sinkt?
-cor(RealData$Energy, RealData$Fatigue)
+cor.test(RealData$Energy, RealData$Fatigue, use = "complete.obs", method = "spearman")
 ggplot(RealData, aes(x = Fatigue, y = Energy)) +
   geom_point(alpha = 0.5) +
   geom_smooth(method = "lm", se = TRUE) +
   labs(
-    title = "Zusammenhang zwischen Fatigue und Energy",
+    title = "connection between Fatigue and Energy",
     x = "Fatigue",
     y = "Energy"
   )
-
+?geom_line
 ggplot(RealData, aes(x = Measurement, y = Energy+Fatigue)) +
   geom_line() +
   labs(
-    title = "Verlauf von Energy + Fatigue",
+    title = "Progression of Energy + Fatigue",
     y = "Energy + Fatigue",
-    x = "Measurement"
+    x = "hours after breakfast"
   )
 
 #Erklärt Schlafscore die Fatigue mehr als das Frühstück?
 ggplot(RealData, aes(x = SleepScore, y = Fatigue, color = Intervention)) +
   geom_point() +
   geom_smooth(method = "lm") +
-  labs(title = "Fatigue ~ Schlafscore", x = "Schlafscore", y = "Fatigue")
+  labs(title = "Fatigue ~ SleepScore", x = "SleepScore", y = "Fatigue")
 model <- lm(Fatigue ~ Intervention + SleepScore, data = RealData)
 summary(model)
 ```
